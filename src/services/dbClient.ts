@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // VITE_DB_URL (databaseURL / authDomain) ve VITE_DB_ANON_KEY (apiKey) .env'den okunur ve Firebase adapter eşleştirmesi yapılır
 const rawDbUrl = import.meta.env.VITE_DB_URL || "";
@@ -29,5 +30,8 @@ const app = initializeApp(firebaseConfig);
 
 // Export Firestore database client as the single source of truth
 export const db = getFirestore(app);
+
+// Export Firebase Storage instance
+export const storage = getStorage(app);
 
 

@@ -40,6 +40,7 @@ export interface Vehicle {
   capacity: number; // Yolcu kapasitesi
   features: VehicleFeature[]; // Araç özellikleri
   status: VehicleStatus;
+  imageUrl?: string;
   created_at: string;
 }
 

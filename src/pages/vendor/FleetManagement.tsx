@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2, X } from 'lucide-react';
+import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2, X, Upload } from 'lucide-react';
 import type { Vehicle, VehicleClass, VehicleStatus, VehicleFeature } from '../../types';
 import { api } from '../../services/api';
 
@@ -25,6 +25,8 @@ export default function FleetManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
     plate_number: '',
@@ -72,8 +74,17 @@ export default function FleetManagement() {
     try {
       setIsSubmitting(true);
       const added = await api.addVehicle(newVehicle as Omit<Vehicle, 'id' | 'created_at'>);
-      setVehicles([...vehicles, added]);
+      
+      let finalAdded = added;
+      if (selectedFile) {
+        setUploadingImage(true);
+        const imageUrl = await api.uploadVehicleImage(added.id, selectedFile);
+        finalAdded = { ...added, imageUrl };
+      }
+
+      setVehicles([...vehicles, finalAdded]);
       setIsAddModalOpen(false);
+      setSelectedFile(null);
       setNewVehicle({
         plate_number: '',
         make: '',
@@ -89,6 +100,7 @@ export default function FleetManagement() {
       console.error('Failed to add vehicle', error);
     } finally {
       setIsSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -146,11 +158,30 @@ export default function FleetManagement() {
             key={vehicle.id} 
             className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
           >
+            {vehicle.imageUrl && (
+              <div className="h-44 w-full bg-slate-50 border-b border-slate-100 overflow-hidden relative">
+                <img 
+                  src={vehicle.imageUrl} 
+                  alt={`${vehicle.make} ${vehicle.model}`} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
             <div className="p-5 flex-1">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <CarIcon className="w-6 h-6 text-slate-600" />
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {vehicle.imageUrl ? (
+                      <img 
+                        src={vehicle.imageUrl} 
+                        alt={`${vehicle.make} ${vehicle.model}`} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <CarIcon className="w-6 h-6 text-slate-600" />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-lg text-slate-900 leading-tight">
@@ -294,6 +325,31 @@ export default function FleetManagement() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Araç Görseli</label>
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                          <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                          <p className="text-sm text-slate-500 font-medium truncate max-w-full">
+                            {selectedFile ? selectedFile.name : "Görsel seçmek için tıklayın"}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">PNG, JPG, JPEG (Maks. 5MB)</p>
+                        </div>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setSelectedFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Özellikler</label>
                     <div className="flex flex-wrap gap-2">
                       {(['WIFI', 'BABY_SEAT', 'WATER', 'TV', 'LEATHER_SEATS'] as VehicleFeature[]).map(feat => (
@@ -316,13 +372,13 @@ export default function FleetManagement() {
                 <button 
                   type="submit"
                   form="add-vehicle-form"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || uploadingImage}
                   className="w-full bg-slate-900 text-white font-semibold py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || uploadingImage ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Kaydediliyor...
+                      {uploadingImage ? 'Resim Yükleniyor...' : 'Kaydediliyor...'}
                     </>
                   ) : 'Aracı Kaydet'}
                 </button>

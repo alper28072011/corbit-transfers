@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus, Vendor, MonetizationPlan } from '../types';
-import { db } from './dbClient';
+import { db, storage } from './dbClient';
 
 export const api = {
   // --- VEHICLES ---
@@ -29,6 +30,19 @@ export const api = {
     await updateDoc(docRef, { status });
     const updated = await getDoc(docRef);
     return { id: updated.id, ...updated.data() } as Vehicle;
+  },
+
+  uploadVehicleImage: async (vehicleId: string, file: File): Promise<string> => {
+    const fileName = `${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, `vehicles/${vehicleId}/${fileName}`);
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    
+    // Firestore'daki dökümanı güncelle
+    const docRef = doc(db, 'vehicles', vehicleId);
+    await updateDoc(docRef, { imageUrl: downloadUrl });
+    
+    return downloadUrl;
   },
 
   // Helper for fetching transfer relations
