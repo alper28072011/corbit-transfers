@@ -1,258 +1,219 @@
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus, Vendor, MonetizationPlan } from '../types';
-
-// In-Memory Mock Database
-let mockVendors: Vendor[] = [
-  { id: 'vendor_1', name: 'Bosphorus Transfers', contact_name: 'Ahmet Yılmaz', phone: '+90 532 111 22 33', email: 'info@bosphorustransfers.com', is_active: true, monetization_plan: 'MIXED', commission_rate: 10, created_at: new Date().toISOString() },
-  { id: 'vendor_2', name: 'Antalya VIP Drive', contact_name: 'Mehmet Demir', phone: '+90 555 444 33 22', email: 'hello@antalyavip.com', is_active: true, monetization_plan: 'PER_TRANSFER', commission_rate: 15, created_at: new Date().toISOString() },
-  { id: 'vendor_3', name: 'Izmir Shuttle', contact_name: 'Ayşe Kaya', phone: '+90 533 222 11 00', email: 'contact@izmirshuttle.com', is_active: false, monetization_plan: 'SUBSCRIPTION', created_at: new Date().toISOString() }
-];
-
-let mockVehicles: Vehicle[] = [
-  { id: 'v1', vendor_id: 'vendor_1', plate_number: '34 TRF 001', make: 'Mercedes-Benz', model: 'Vito VIP', year: 2023, class: 'VIP_VAN', capacity: 6, features: ['WIFI', 'WATER', 'LEATHER_SEATS'], status: 'ACTIVE', created_at: new Date().toISOString() },
-  { id: 'v2', vendor_id: 'vendor_1', plate_number: '34 TRF 002', make: 'Volkswagen', model: 'Caravelle', year: 2022, class: 'MINIVAN', capacity: 8, features: ['WIFI', 'BABY_SEAT'], status: 'MAINTENANCE', created_at: new Date().toISOString() },
-  { id: 'v3', vendor_id: 'vendor_1', plate_number: '34 TRF 003', make: 'Mercedes-Benz', model: 'E-Class', year: 2024, class: 'SEDAN', capacity: 3, features: ['WATER', 'LEATHER_SEATS'], status: 'ACTIVE', created_at: new Date().toISOString() }
-];
-
-let mockDrivers: User[] = [
-  { id: 'd1', vendor_id: 'vendor_1', role: 'DRIVER', name: 'Ahmet Yılmaz', phone: '+90 555 111 22 33', email: 'ahmet@test.com', is_active: true, created_at: new Date().toISOString() },
-  { id: 'd2', vendor_id: 'vendor_1', role: 'DRIVER', name: 'Mehmet Demir', phone: '+90 555 222 33 44', email: 'mehmet@test.com', is_active: true, created_at: new Date().toISOString() },
-];
-
-let mockTransfers: Transfer[] = [
-  {
-    id: 't1',
-    pnr: 'TRF-123',
-    vendor_id: 'vendor_1',
-    passenger_name: 'John Doe',
-    passenger_phone: '555',
-    passenger_count: 2,
-    language_preference: 'en',
-    requested_vehicle_class: 'VIP_VAN',
-    pickup_location: 'Istanbul Airport (IST)',
-    dropoff_location: 'Swissotel The Bosphorus',
-    pickup_time: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-    flight_number: 'TK1984',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Mr. John Doe',
-    status: 'PENDING',
-    is_guest_notified: false,
-    price: 150,
-    commission_amount: 15,
-    currency: 'EUR',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't2',
-    pnr: 'TRF-456',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v1',
-    driver_id: 'd1',
-    passenger_name: 'Ayşe Kaya',
-    passenger_phone: '555',
-    passenger_count: 4,
-    language_preference: 'tr',
-    requested_vehicle_class: 'VIP_VAN',
-    pickup_location: 'Sabiha Gokcen Airport (SAW)',
-    dropoff_location: 'Kadikoy Merkez',
-    pickup_time: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
-    flight_number: 'PC284',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Ayşe Kaya',
-    status: 'DRIVER_ASSIGNED',
-    is_guest_notified: true,
-    price: 800,
-    commission_amount: 80,
-    currency: 'TRY',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't3',
-    pnr: 'TRF-789',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v2',
-    driver_id: 'd2',
-    passenger_name: 'Elena Petrova',
-    passenger_phone: '555',
-    passenger_count: 5,
-    language_preference: 'ru',
-    requested_vehicle_class: 'MINIVAN',
-    pickup_location: 'Antalya Airport (AYT)',
-    dropoff_location: 'Rixos Premium Belek',
-    pickup_time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    flight_number: 'SU2134',
-    flight_status: 'DELAYED',
-    meeting_board_text: 'Elena Petrova Family',
-    status: 'PASSENGER_PICKED_UP',
-    is_guest_notified: true,
-    price: 120,
-    commission_amount: 12,
-    currency: 'EUR',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't4',
-    pnr: 'TRF-2A11B',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v3',
-    driver_id: 'd1',
-    passenger_name: 'Ali Yılmaz',
-    passenger_phone: '+905554443322',
-    passenger_count: 1,
-    language_preference: 'tr',
-    requested_vehicle_class: 'SEDAN',
-    pickup_location: 'Sabiha Gokcen Airport (SAW)',
-    dropoff_location: 'Pendik Marina',
-    pickup_time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // Dün
-    flight_number: 'TK2000',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Ali Yılmaz',
-    status: 'COMPLETED',
-    is_guest_notified: true,
-    price: 400,
-    commission_amount: 40,
-    currency: 'TRY',
-    created_at: new Date().toISOString()
-  }
-];
-
-// Helper to simulate network latency
-const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
+import { db } from './dbClient';
 
 export const api = {
   // --- VEHICLES ---
   getVehicles: async (vendorId: string): Promise<Vehicle[]> => {
-    await delay();
-    return [...mockVehicles.filter(v => v.vendor_id === vendorId)];
+    try {
+      const q = query(collection(db, 'vehicles'), where('vendor_id', '==', vendorId));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle));
+    } catch (error: any) {
+      console.warn('DB Error (getVehicles):', error.message);
+      return [];
+    }
   },
   
   addVehicle: async (vehicleData: Omit<Vehicle, 'id' | 'created_at'>): Promise<Vehicle> => {
-    await delay();
-    const newVehicle: Vehicle = {
+    const newDoc = {
       ...vehicleData,
-      id: `v_${Date.now()}`,
       created_at: new Date().toISOString()
     };
-    mockVehicles = [...mockVehicles, newVehicle];
-    return { ...newVehicle };
+    const docRef = await addDoc(collection(db, 'vehicles'), newDoc);
+    return { id: docRef.id, ...newDoc } as Vehicle;
   },
 
   updateVehicleStatus: async (id: string, status: VehicleStatus): Promise<Vehicle> => {
-    await delay();
-    const idx = mockVehicles.findIndex(v => v.id === id);
-    if (idx === -1) throw new Error('Vehicle not found');
+    const docRef = doc(db, 'vehicles', id);
+    await updateDoc(docRef, { status });
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as Vehicle;
+  },
+
+  // Helper for fetching transfer relations
+  _populateTransfer: async (transferData: any): Promise<any> => {
+    let vehicle = null;
+    let driver = null;
     
-    mockVehicles[idx] = { ...mockVehicles[idx], status };
-    mockVehicles = [...mockVehicles]; // trigger reference update if needed
-    return { ...mockVehicles[idx] };
+    if (transferData.vehicle_id) {
+      const vDoc = await getDoc(doc(db, 'vehicles', transferData.vehicle_id));
+      if (vDoc.exists()) vehicle = { id: vDoc.id, ...vDoc.data() };
+    }
+    
+    if (transferData.driver_id) {
+      const dDoc = await getDoc(doc(db, 'users', transferData.driver_id));
+      if (dDoc.exists()) driver = { id: dDoc.id, ...dDoc.data() };
+    }
+    
+    return {
+      ...transferData,
+      vehicle,
+      driver
+    };
   },
 
   // --- TRANSFERS ---
   getTransfers: async (vendorId: string): Promise<Transfer[]> => {
-    await delay();
-    return [...mockTransfers.filter(t => t.vendor_id === vendorId)];
+    try {
+      const q = query(collection(db, 'transfers'), where('vendor_id', '==', vendorId));
+      const snapshot = await getDocs(q);
+      const transfers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transfer));
+      
+      return Promise.all(transfers.map(t => api._populateTransfer(t)));
+    } catch (error: any) {
+      console.warn('DB Error (getTransfers):', error.message);
+      return [];
+    }
   },
 
   getDriverTransfers: async (driverId: string): Promise<Transfer[]> => {
-    await delay();
-    return [...mockTransfers.filter(t => t.driver_id === driverId)];
+    try {
+      const q = query(collection(db, 'transfers'), where('driver_id', '==', driverId));
+      const snapshot = await getDocs(q);
+      const transfers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transfer));
+      
+      return Promise.all(transfers.map(t => api._populateTransfer(t)));
+    } catch (error: any) {
+      console.warn('DB Error (getDriverTransfers):', error.message);
+      return [];
+    }
   },
 
   getTransferByPnr: async (pnr: string, phone: string): Promise<{ transfer: Transfer, driver: User | null, vehicle: Vehicle | null } | null> => {
-    await delay();
-    const transfer = mockTransfers.find(
-      t => t.pnr.toLowerCase() === pnr.toLowerCase().trim() && t.passenger_phone === phone.trim()
-    );
-    if (!transfer) return null;
+    try {
+      const q = query(collection(db, 'transfers'), where('passenger_phone', '==', phone.trim()));
+      const snapshot = await getDocs(q);
+      
+      const found = snapshot.docs.find(d => {
+        const data = d.data();
+        return data.pnr?.toLowerCase() === pnr.toLowerCase().trim();
+      });
 
-    const driver = transfer.driver_id ? mockDrivers.find(d => d.id === transfer.driver_id) || null : null;
-    const vehicle = transfer.vehicle_id ? mockVehicles.find(v => v.id === transfer.vehicle_id) || null : null;
+      if (!found) return null;
 
-    return { transfer: { ...transfer }, driver: driver ? { ...driver } : null, vehicle: vehicle ? { ...vehicle } : null };
+      const transferData = { id: found.id, ...found.data() } as Transfer;
+      
+      let vehicle = null;
+      let driver = null;
+      
+      if (transferData.vehicle_id) {
+        const vDoc = await getDoc(doc(db, 'vehicles', transferData.vehicle_id));
+        if (vDoc.exists()) vehicle = { id: vDoc.id, ...vDoc.data() } as Vehicle;
+      }
+      
+      if (transferData.driver_id) {
+        const dDoc = await getDoc(doc(db, 'users', transferData.driver_id));
+        if (dDoc.exists()) driver = { id: dDoc.id, ...dDoc.data() } as User;
+      }
+      
+      return { 
+        transfer: transferData,
+        driver, 
+        vehicle 
+      };
+    } catch (error) {
+      console.warn('DB Error (getTransferByPnr):', error);
+      return null;
+    }
   },
 
   updateTransferStatus: async (id: string, status: TransferStatus): Promise<Transfer> => {
-    await delay();
-    const idx = mockTransfers.findIndex(t => t.id === id);
-    if (idx === -1) throw new Error('Transfer not found');
-
-    mockTransfers[idx] = { ...mockTransfers[idx], status };
-    mockTransfers = [...mockTransfers];
-    return { ...mockTransfers[idx] };
+    const docRef = doc(db, 'transfers', id);
+    await updateDoc(docRef, { status });
+    const updated = await getDoc(docRef);
+    return api._populateTransfer({ id: updated.id, ...updated.data() });
   },
 
   assignDriverAndVehicle: async (transferId: string, driverId: string, vehicleId: string): Promise<Transfer> => {
-    await delay();
-    const idx = mockTransfers.findIndex(t => t.id === transferId);
-    if (idx === -1) throw new Error('Transfer not found');
-
-    mockTransfers[idx] = { ...mockTransfers[idx], driver_id: driverId, vehicle_id: vehicleId, status: 'DRIVER_ASSIGNED' };
-    mockTransfers = [...mockTransfers];
-    return { ...mockTransfers[idx] };
+    const docRef = doc(db, 'transfers', transferId);
+    await updateDoc(docRef, { driver_id: driverId, vehicle_id: vehicleId, status: 'DRIVER_ASSIGNED' });
+    const updated = await getDoc(docRef);
+    return api._populateTransfer({ id: updated.id, ...updated.data() });
   },
 
   toggleGuestNotification: async (transferId: string): Promise<Transfer> => {
-    await delay();
-    const idx = mockTransfers.findIndex(t => t.id === transferId);
-    if (idx === -1) throw new Error('Transfer not found');
+    const docRef = doc(db, 'transfers', transferId);
+    const current = await getDoc(docRef);
+    if (!current.exists()) throw new Error("Transfer not found");
 
-    mockTransfers[idx] = { ...mockTransfers[idx], is_guest_notified: !mockTransfers[idx].is_guest_notified };
-    mockTransfers = [...mockTransfers];
-    return { ...mockTransfers[idx] };
+    const is_guest_notified = !current.data().is_guest_notified;
+    await updateDoc(docRef, { is_guest_notified });
+    
+    const updated = await getDoc(docRef);
+    return api._populateTransfer({ id: updated.id, ...updated.data() });
   },
 
   // --- DRIVERS ---
   getDrivers: async (vendorId: string): Promise<User[]> => {
-    await delay();
-    return [...mockDrivers.filter(d => d.vendor_id === vendorId)];
+    try {
+      const q = query(collection(db, 'users'), where('vendor_id', '==', vendorId), where('role', '==', 'DRIVER'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    } catch (error: any) {
+      console.warn('DB Error (getDrivers):', error.message);
+      return [];
+    }
   },
 
   // --- ADMIN & SYSTEM STATS ---
   getVendors: async (): Promise<Vendor[]> => {
-    await delay();
-    return [...mockVendors];
+    try {
+      const snapshot = await getDocs(collection(db, 'vendors'));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vendor));
+    } catch (error: any) {
+      console.warn('DB Error (getVendors):', error.message);
+      return [];
+    }
   },
 
   addVendor: async (vendorData: Omit<Vendor, 'id' | 'created_at'>): Promise<Vendor> => {
-    await delay();
-    const newVendor: Vendor = {
+    const newDoc = {
       ...vendorData,
-      id: `vendor_${Date.now()}`,
       created_at: new Date().toISOString()
     };
-    mockVendors = [...mockVendors, newVendor];
-    return { ...newVendor };
+    const docRef = await addDoc(collection(db, 'vendors'), newDoc);
+    return { id: docRef.id, ...newDoc } as Vendor;
   },
 
   updateVendorStatus: async (id: string, is_active: boolean): Promise<Vendor> => {
-    await delay();
-    const idx = mockVendors.findIndex(v => v.id === id);
-    if (idx === -1) throw new Error('Vendor not found');
-    mockVendors[idx] = { ...mockVendors[idx], is_active };
-    mockVendors = [...mockVendors];
-    return { ...mockVendors[idx] };
+    const docRef = doc(db, 'vendors', id);
+    await updateDoc(docRef, { is_active });
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as Vendor;
   },
 
   updateVendorMonetization: async (id: string, plan: MonetizationPlan): Promise<Vendor> => {
-    await delay();
-    const idx = mockVendors.findIndex(v => v.id === id);
-    if (idx === -1) throw new Error('Vendor not found');
-    mockVendors[idx] = { ...mockVendors[idx], monetization_plan: plan };
-    mockVendors = [...mockVendors];
-    return { ...mockVendors[idx] };
+    const docRef = doc(db, 'vendors', id);
+    await updateDoc(docRef, { monetization_plan: plan });
+    const updated = await getDoc(docRef);
+    return { id: updated.id, ...updated.data() } as Vendor;
   },
 
   getSystemStats: async () => {
-    await delay();
-    const totalRevenue = mockTransfers.reduce((acc, t) => acc + (t.commission_amount || 0), 0);
-    const totalTransfers = mockTransfers.length;
-    const activeVendors = mockVendors.filter(v => v.is_active).length;
-    const activeVehicles = mockVehicles.filter(v => v.status === 'ACTIVE').length;
+    try {
+      const vendorsSnap = await getDocs(query(collection(db, 'vendors'), where('is_active', '==', true)));
+      const vehiclesSnap = await getDocs(query(collection(db, 'vehicles'), where('status', '==', 'ACTIVE')));
+      const transfersSnap = await getDocs(collection(db, 'transfers'));
 
-    return {
-      totalRevenue,
-      totalTransfers,
-      activeVendors,
-      activeVehicles
-    };
+      const activeVendors = vendorsSnap.size;
+      const activeVehicles = vehiclesSnap.size;
+      const totalTransfers = transfersSnap.size;
+      
+      const totalRevenue = transfersSnap.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        return acc + (data.commission_amount || 0);
+      }, 0);
+
+      return {
+        totalRevenue,
+        totalTransfers,
+        activeVendors,
+        activeVehicles
+      };
+    } catch (error) {
+      console.warn('DB Error (getSystemStats):', error);
+      return { totalRevenue: 0, totalTransfers: 0, activeVendors: 0, activeVehicles: 0 };
+    }
   }
 };
