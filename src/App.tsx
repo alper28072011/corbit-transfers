@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Plane, Building2, Car, User } from 'lucide-react';
 import VendorLayout from './pages/vendor/VendorLayout';
 import DriverDashboard from './pages/driver/DriverDashboard';
+import GuestTracking from './pages/guest/GuestTracking';
 
 export default function App() {
   return (
@@ -12,7 +13,7 @@ export default function App() {
           <Route path="/admin/*" element={<PlaceholderPanel title="Super Admin Panel" />} />
           <Route path="/vendor/*" element={<VendorLayout />} />
           <Route path="/driver/*" element={<DriverDashboard />} />
-          <Route path="/guest/*" element={<PlaceholderPanel title="Guest (Passenger) Panel" />} />
+          <Route path="/guest/*" element={<GuestTracking />} />
         </Routes>
       </div>
     </BrowserRouter>
