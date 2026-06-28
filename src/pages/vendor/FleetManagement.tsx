@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2 } from 'lucide-react';
+import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2, X } from 'lucide-react';
 import type { Vehicle, VehicleClass, VehicleStatus, VehicleFeature } from '../../types';
 import { api } from '../../services/api';
 
@@ -24,6 +24,19 @@ export default function FleetManagement() {
   const [filterClass, setFilterClass] = useState<VehicleClass | 'ALL'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
+    plate_number: '',
+    make: '',
+    model: '',
+    year: new Date().getFullYear(),
+    class: 'MINIVAN',
+    capacity: 6,
+    features: [],
+    status: 'ACTIVE',
+    vendor_id: VENDOR_ID
+  });
 
   useEffect(() => {
     loadVehicles();
@@ -50,6 +63,42 @@ export default function FleetManagement() {
     } catch (error) {
       console.error('Failed to update status', error);
     }
+  };
+
+  const handleAddVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVehicle.plate_number || !newVehicle.make || !newVehicle.model) return;
+    
+    try {
+      setIsSubmitting(true);
+      const added = await api.addVehicle(newVehicle as Omit<Vehicle, 'id' | 'created_at'>);
+      setVehicles([...vehicles, added]);
+      setIsAddModalOpen(false);
+      setNewVehicle({
+        plate_number: '',
+        make: '',
+        model: '',
+        year: new Date().getFullYear(),
+        class: 'MINIVAN',
+        capacity: 6,
+        features: [],
+        status: 'ACTIVE',
+        vendor_id: VENDOR_ID
+      });
+    } catch (error) {
+      console.error('Failed to add vehicle', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleFeature = (feat: VehicleFeature) => {
+    setNewVehicle(prev => ({
+      ...prev,
+      features: prev.features?.includes(feat) 
+        ? prev.features.filter(f => f !== feat)
+        : [...(prev.features || []), feat]
+    }));
   };
 
   return (
@@ -180,28 +229,52 @@ export default function FleetManagement() {
               </div>
               
               <div className="flex-1 overflow-y-auto p-6">
-                {/* Form fields skeleton */}
-                <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setIsAddModalOpen(false); }}>
+                <form id="add-vehicle-form" className="space-y-5" onSubmit={handleAddVehicle}>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Plaka Numarası</label>
-                    <input type="text" placeholder="Örn: 34 TRF 001" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all font-mono uppercase" />
+                    <input 
+                      type="text" 
+                      value={newVehicle.plate_number}
+                      onChange={(e) => setNewVehicle({...newVehicle, plate_number: e.target.value})}
+                      placeholder="Örn: 34 TRF 001" 
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all font-mono uppercase" 
+                      required
+                    />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Marka</label>
-                      <input type="text" placeholder="Örn: Mercedes" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" />
+                      <input 
+                        type="text" 
+                        value={newVehicle.make}
+                        onChange={(e) => setNewVehicle({...newVehicle, make: e.target.value})}
+                        placeholder="Örn: Mercedes" 
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" 
+                        required
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Model</label>
-                      <input type="text" placeholder="Örn: Vito" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" />
+                      <input 
+                        type="text" 
+                        value={newVehicle.model}
+                        onChange={(e) => setNewVehicle({...newVehicle, model: e.target.value})}
+                        placeholder="Örn: Vito" 
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" 
+                        required
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Sınıf</label>
-                      <select className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all bg-white">
+                      <select 
+                        value={newVehicle.class}
+                        onChange={(e) => setNewVehicle({...newVehicle, class: e.target.value as VehicleClass})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all bg-white"
+                      >
                         <option value="SEDAN">Sedan</option>
                         <option value="MINIVAN">Minivan</option>
                         <option value="VIP_VAN">VIP Van</option>
@@ -210,16 +283,27 @@ export default function FleetManagement() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kapasite</label>
-                      <input type="number" placeholder="Yolcu sayısı" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" />
+                      <input 
+                        type="number" 
+                        value={newVehicle.capacity}
+                        onChange={(e) => setNewVehicle({...newVehicle, capacity: parseInt(e.target.value) || 0})}
+                        placeholder="Yolcu sayısı" 
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all" 
+                      />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Özellikler</label>
                     <div className="flex flex-wrap gap-2">
-                      {['WIFI', 'BABY_SEAT', 'WATER', 'TV', 'LEATHER_SEATS'].map(feat => (
+                      {(['WIFI', 'BABY_SEAT', 'WATER', 'TV', 'LEATHER_SEATS'] as VehicleFeature[]).map(feat => (
                         <label key={feat} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100">
-                          <input type="checkbox" className="rounded text-slate-900 focus:ring-slate-900" />
+                          <input 
+                            type="checkbox" 
+                            checked={newVehicle.features?.includes(feat) || false}
+                            onChange={() => toggleFeature(feat)}
+                            className="rounded text-slate-900 focus:ring-slate-900" 
+                          />
                           <span className="text-sm font-medium text-slate-700">{feat.replace('_', ' ')}</span>
                         </label>
                       ))}
@@ -230,10 +314,17 @@ export default function FleetManagement() {
 
               <div className="p-6 border-t border-slate-100 bg-slate-50">
                 <button 
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="w-full bg-slate-900 text-white font-semibold py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-sm"
+                  type="submit"
+                  form="add-vehicle-form"
+                  disabled={isSubmitting}
+                  className="w-full bg-slate-900 text-white font-semibold py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Aracı Kaydet
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : 'Aracı Kaydet'}
                 </button>
               </div>
             </motion.div>

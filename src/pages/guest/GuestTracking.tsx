@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
@@ -12,7 +12,8 @@ import {
   FileCheck,
   Navigation,
   Globe,
-  Loader2
+  Loader2,
+  User as UserIcon
 } from 'lucide-react';
 import type { TransferStatus, Transfer, User, Vehicle } from '../../types';
 import { api } from '../../services/api';
