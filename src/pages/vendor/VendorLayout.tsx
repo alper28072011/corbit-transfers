@@ -2,6 +2,7 @@ import { Car, LayoutDashboard, Settings, Users, CalendarDays, Menu, X } from 'lu
 import { useState } from 'react';
 import { Link, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import FleetManagement from './FleetManagement';
+import TransferManagement from './TransferManagement';
 
 export default function VendorLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -83,7 +84,7 @@ export default function VendorLayout() {
           <Route path="fleet" element={<FleetManagement />} />
           <Route path="dashboard" element={<Placeholder title="Dashboard" />} />
           <Route path="drivers" element={<Placeholder title="Şoför Yönetimi" />} />
-          <Route path="transfers" element={<Placeholder title="Transferler" />} />
+          <Route path="transfers" element={<TransferManagement />} />
           <Route path="settings" element={<Placeholder title="Firma Ayarları" />} />
         </Routes>
       </main>

@@ -55,6 +55,7 @@ export interface Transfer {
   passenger_phone: string;
   passenger_count: number;
   language_preference: string; // 'en', 'tr', 'ru' vb.
+  requested_vehicle_class: VehicleClass;
   
   // Lokasyon ve Uçuş
   pickup_location: string;
