@@ -3,6 +3,7 @@ import { Plane, Building2, Car, User } from 'lucide-react';
 import VendorLayout from './pages/vendor/VendorLayout';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import GuestTracking from './pages/guest/GuestTracking';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 export default function App() {
   return (
@@ -10,7 +11,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
         <Routes>
           <Route path="/" element={<WelcomeScreen />} />
-          <Route path="/admin/*" element={<PlaceholderPanel title="Super Admin Panel" />} />
+          <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/vendor/*" element={<VendorLayout />} />
           <Route path="/driver/*" element={<DriverDashboard />} />
           <Route path="/guest/*" element={<GuestTracking />} />

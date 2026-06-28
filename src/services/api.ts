@@ -1,6 +1,12 @@
-import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus } from '../types';
+import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus, Vendor, MonetizationPlan } from '../types';
 
 // In-Memory Mock Database
+let mockVendors: Vendor[] = [
+  { id: 'vendor_1', name: 'Bosphorus Transfers', contact_name: 'Ahmet Yılmaz', phone: '+90 532 111 22 33', email: 'info@bosphorustransfers.com', is_active: true, monetization_plan: 'MIXED', commission_rate: 10, created_at: new Date().toISOString() },
+  { id: 'vendor_2', name: 'Antalya VIP Drive', contact_name: 'Mehmet Demir', phone: '+90 555 444 33 22', email: 'hello@antalyavip.com', is_active: true, monetization_plan: 'PER_TRANSFER', commission_rate: 15, created_at: new Date().toISOString() },
+  { id: 'vendor_3', name: 'Izmir Shuttle', contact_name: 'Ayşe Kaya', phone: '+90 533 222 11 00', email: 'contact@izmirshuttle.com', is_active: false, monetization_plan: 'SUBSCRIPTION', created_at: new Date().toISOString() }
+];
+
 let mockVehicles: Vehicle[] = [
   { id: 'v1', vendor_id: 'vendor_1', plate_number: '34 TRF 001', make: 'Mercedes-Benz', model: 'Vito VIP', year: 2023, class: 'VIP_VAN', capacity: 6, features: ['WIFI', 'WATER', 'LEATHER_SEATS'], status: 'ACTIVE', created_at: new Date().toISOString() },
   { id: 'v2', vendor_id: 'vendor_1', plate_number: '34 TRF 002', make: 'Volkswagen', model: 'Caravelle', year: 2022, class: 'MINIVAN', capacity: 8, features: ['WIFI', 'BABY_SEAT'], status: 'MAINTENANCE', created_at: new Date().toISOString() },
@@ -198,5 +204,55 @@ export const api = {
   getDrivers: async (vendorId: string): Promise<User[]> => {
     await delay();
     return [...mockDrivers.filter(d => d.vendor_id === vendorId)];
+  },
+
+  // --- ADMIN & SYSTEM STATS ---
+  getVendors: async (): Promise<Vendor[]> => {
+    await delay();
+    return [...mockVendors];
+  },
+
+  addVendor: async (vendorData: Omit<Vendor, 'id' | 'created_at'>): Promise<Vendor> => {
+    await delay();
+    const newVendor: Vendor = {
+      ...vendorData,
+      id: `vendor_${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    mockVendors = [...mockVendors, newVendor];
+    return { ...newVendor };
+  },
+
+  updateVendorStatus: async (id: string, is_active: boolean): Promise<Vendor> => {
+    await delay();
+    const idx = mockVendors.findIndex(v => v.id === id);
+    if (idx === -1) throw new Error('Vendor not found');
+    mockVendors[idx] = { ...mockVendors[idx], is_active };
+    mockVendors = [...mockVendors];
+    return { ...mockVendors[idx] };
+  },
+
+  updateVendorMonetization: async (id: string, plan: MonetizationPlan): Promise<Vendor> => {
+    await delay();
+    const idx = mockVendors.findIndex(v => v.id === id);
+    if (idx === -1) throw new Error('Vendor not found');
+    mockVendors[idx] = { ...mockVendors[idx], monetization_plan: plan };
+    mockVendors = [...mockVendors];
+    return { ...mockVendors[idx] };
+  },
+
+  getSystemStats: async () => {
+    await delay();
+    const totalRevenue = mockTransfers.reduce((acc, t) => acc + (t.commission_amount || 0), 0);
+    const totalTransfers = mockTransfers.length;
+    const activeVendors = mockVendors.filter(v => v.is_active).length;
+    const activeVehicles = mockVehicles.filter(v => v.status === 'ACTIVE').length;
+
+    return {
+      totalRevenue,
+      totalTransfers,
+      activeVendors,
+      activeVehicles
+    };
   }
 };
