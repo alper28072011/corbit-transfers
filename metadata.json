@@ -1,0 +1,6 @@
+{
+  "name": "Havalimanı Transfer Platformu",
+  "description": "Multi-Tenant B2B ve B2C Havalimanı Transfer Yönetimi ve Rezervasyon SaaS Platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
