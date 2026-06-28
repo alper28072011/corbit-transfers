@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getDataConnect } from "firebase/data-connect";
 
 // VITE_DB_URL (databaseURL / authDomain) ve VITE_DB_ANON_KEY (apiKey) .env'den okunur ve Firebase adapter eşleştirmesi yapılır
 const rawDbUrl = import.meta.env.VITE_DB_URL || "";
@@ -28,18 +27,7 @@ const firebaseConfig = {
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// Export Firestore database client as robust fallback / operational client
+// Export Firestore database client as the single source of truth
 export const db = getFirestore(app);
 
-// Initialize Firebase Data Connect
-export const dataConnect = getDataConnect(app, {
-  connector: "corbit",
-  location: "us-central1",
-  service: "corbit-service"
-});
-
-// Export connectDataConnect for development / emulator environments as requested
-export function connectDataConnect(dataConnectInstance: any, host: string, port: number, ssl?: boolean) {
-  console.log("Firebase Data Connect connected to emulator:", host, port, ssl);
-}
 
