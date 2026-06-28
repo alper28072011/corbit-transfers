@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, 
@@ -10,95 +10,38 @@ import {
   X, 
   Navigation,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 import type { Transfer, TransferStatus } from '../../types';
+import { api } from '../../services/api';
 
 // O anki giriş yapmış şoförün ID'si
 const CURRENT_DRIVER_ID = 'd1';
 
-// Mock Data
-const MOCK_TRANSFERS: Transfer[] = [
-  {
-    id: 't2',
-    pnr: 'TRF-4B29M',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v3',
-    driver_id: CURRENT_DRIVER_ID,
-    passenger_name: 'Ayşe Kaya',
-    passenger_phone: '+905321112233',
-    passenger_count: 2,
-    language_preference: 'tr',
-    requested_vehicle_class: 'SEDAN',
-    pickup_location: 'Kadikoy Merkez',
-    dropoff_location: 'Sabiha Gokcen Airport (SAW)',
-    pickup_time: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(), // 2 saat sonra
-    flight_number: 'PC284',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Ayşe Kaya',
-    status: 'DRIVER_ASSIGNED', // Şoför Atandı (Bekliyor)
-    is_guest_notified: true,
-    price: 800,
-    commission_amount: 80,
-    currency: 'TRY',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't4',
-    pnr: 'TRF-7Z88Q',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v3',
-    driver_id: CURRENT_DRIVER_ID,
-    passenger_name: 'Michael Smith',
-    passenger_phone: '+447700900111',
-    passenger_count: 3,
-    language_preference: 'en',
-    requested_vehicle_class: 'SEDAN',
-    pickup_location: 'Istanbul Airport (IST)',
-    dropoff_location: 'Hilton Bosphorus',
-    pickup_time: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 dk önce başlamış
-    flight_number: 'TK1984',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'MR. MICHAEL SMITH',
-    status: 'PASSENGER_PICKED_UP', // Seyir Halinde
-    is_guest_notified: true,
-    price: 120,
-    commission_amount: 12,
-    currency: 'EUR',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't5',
-    pnr: 'TRF-2A11B',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v3',
-    driver_id: CURRENT_DRIVER_ID,
-    passenger_name: 'Ali Yılmaz',
-    passenger_phone: '+905554443322',
-    passenger_count: 1,
-    language_preference: 'tr',
-    requested_vehicle_class: 'SEDAN',
-    pickup_location: 'Sabiha Gokcen Airport (SAW)',
-    dropoff_location: 'Pendik Marina',
-    pickup_time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // Dün
-    flight_number: 'TK2000',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Ali Yılmaz',
-    status: 'COMPLETED', // Tamamlanmış
-    is_guest_notified: true,
-    price: 400,
-    commission_amount: 40,
-    currency: 'TRY',
-    created_at: new Date().toISOString()
-  }
-];
-
 type TabType = 'ACTIVE' | 'PAST';
 
 export default function DriverDashboard() {
-  const [transfers, setTransfers] = useState<Transfer[]>(MOCK_TRANSFERS);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('ACTIVE');
   const [meetingBoardText, setMeetingBoardText] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadTransfers();
+  }, []);
+
+  const loadTransfers = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getDriverTransfers(CURRENT_DRIVER_ID);
+      setTransfers(data);
+    } catch (error) {
+      console.error('Failed to load transfers', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredTransfers = transfers.filter(t => {
     if (activeTab === 'ACTIVE') {
@@ -108,8 +51,13 @@ export default function DriverDashboard() {
     }
   });
 
-  const updateTransferStatus = (id: string, newStatus: TransferStatus) => {
-    setTransfers(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+  const updateTransferStatus = async (id: string, newStatus: TransferStatus) => {
+    try {
+      const updated = await api.updateTransferStatus(id, newStatus);
+      setTransfers(prev => prev.map(t => t.id === id ? updated : t));
+    } catch (error) {
+      console.error('Failed to update status', error);
+    }
   };
 
   const formatTime = (isoString: string) => {

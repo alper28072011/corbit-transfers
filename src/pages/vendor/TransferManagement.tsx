@@ -1,95 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CalendarDays, MapPin, Users, Plane, Clock, 
-  MessageCircle, Car, User as UserIcon, X, ChevronRight, Edit2, AlertCircle, CheckCircle2
+  MessageCircle, Car, User as UserIcon, X, ChevronRight, Edit2, AlertCircle, CheckCircle2, Loader2
 } from 'lucide-react';
 import type { Transfer, TransferStatus, User, Vehicle, FlightStatus } from '../../types';
+import { api } from '../../services/api';
 
-// Mock Data
-const MOCK_VEHICLES: Vehicle[] = [
-  { id: 'v1', vendor_id: 'vendor_1', plate_number: '34 TRF 001', make: 'Mercedes', model: 'Vito VIP', year: 2023, class: 'VIP_VAN', capacity: 6, features: ['WIFI'], status: 'ACTIVE', created_at: '' },
-  { id: 'v2', vendor_id: 'vendor_1', plate_number: '34 TRF 002', make: 'VW', model: 'Caravelle', year: 2022, class: 'MINIVAN', capacity: 8, features: [], status: 'ACTIVE', created_at: '' },
-  { id: 'v3', vendor_id: 'vendor_1', plate_number: '34 TRF 003', make: 'Mercedes', model: 'E-Class', year: 2024, class: 'SEDAN', capacity: 3, features: [], status: 'ACTIVE', created_at: '' },
-];
-
-const MOCK_DRIVERS: User[] = [
-  { id: 'd1', vendor_id: 'vendor_1', role: 'DRIVER', name: 'Ahmet Yılmaz', phone: '+90 555 111 2233', email: 'ahmet@test.com', is_active: true, created_at: '' },
-  { id: 'd2', vendor_id: 'vendor_1', role: 'DRIVER', name: 'Mehmet Demir', phone: '+90 555 222 3344', email: 'mehmet@test.com', is_active: true, created_at: '' },
-];
-
-const MOCK_TRANSFERS: Transfer[] = [
-  {
-    id: 't1',
-    pnr: 'TRF-8X91P',
-    vendor_id: 'vendor_1',
-    passenger_name: 'John Doe',
-    passenger_phone: '+44 7700 900077',
-    passenger_count: 4,
-    language_preference: 'en',
-    requested_vehicle_class: 'VIP_VAN',
-    pickup_location: 'Istanbul Airport (IST)',
-    dropoff_location: 'Swissotel The Bosphorus',
-    pickup_time: '2026-06-28T14:30:00Z',
-    flight_number: 'TK1984',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Mr. John Doe',
-    status: 'PENDING',
-    is_guest_notified: false,
-    price: 150,
-    commission_amount: 15,
-    currency: 'EUR',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't2',
-    pnr: 'TRF-4B29M',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v3',
-    driver_id: 'd1',
-    passenger_name: 'Ayşe Kaya',
-    passenger_phone: '+90 532 111 2233',
-    passenger_count: 2,
-    language_preference: 'tr',
-    requested_vehicle_class: 'SEDAN',
-    pickup_location: 'Kadikoy Merkez',
-    dropoff_location: 'Sabiha Gokcen Airport (SAW)',
-    pickup_time: '2026-06-28T09:15:00Z',
-    flight_number: 'PC284',
-    flight_status: 'ON_TIME',
-    meeting_board_text: 'Ayşe Kaya',
-    status: 'DRIVER_ASSIGNED',
-    is_guest_notified: true,
-    price: 800,
-    commission_amount: 80,
-    currency: 'TRY',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 't3',
-    pnr: 'TRF-9L11Z',
-    vendor_id: 'vendor_1',
-    vehicle_id: 'v2',
-    driver_id: 'd2',
-    passenger_name: 'Elena Petrova',
-    passenger_phone: '+7 900 123 4567',
-    passenger_count: 5,
-    language_preference: 'ru',
-    requested_vehicle_class: 'MINIVAN',
-    pickup_location: 'Antalya Airport (AYT)',
-    dropoff_location: 'Rixos Premium Belek',
-    pickup_time: '2026-06-27T18:00:00Z',
-    flight_number: 'SU2134',
-    flight_status: 'DELAYED',
-    meeting_board_text: 'Elena Petrova Family',
-    status: 'COMPLETED',
-    is_guest_notified: true,
-    price: 120,
-    commission_amount: 12,
-    currency: 'EUR',
-    created_at: new Date().toISOString()
-  }
-];
+const VENDOR_ID = 'vendor_1';
 
 type FilterTab = 'ALL' | 'PENDING' | 'ASSIGNED' | 'COMPLETED_CANCELLED';
 
@@ -110,7 +28,10 @@ const statusLabels: Record<TransferStatus, string> = {
 };
 
 export default function TransferManagement() {
-  const [transfers, setTransfers] = useState<Transfer[]>(MOCK_TRANSFERS);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [drivers, setDrivers] = useState<User[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
   
   // Assignment Modal State
@@ -118,6 +39,28 @@ export default function TransferManagement() {
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [tData, dData, vData] = await Promise.all([
+        api.getTransfers(VENDOR_ID),
+        api.getDrivers(VENDOR_ID),
+        api.getVehicles(VENDOR_ID)
+      ]);
+      setTransfers(tData);
+      setDrivers(dData);
+      setVehicles(vData);
+    } catch (error) {
+      console.error('Failed to load data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredTransfers = transfers.filter(t => {
     if (activeTab === 'ALL') return true;
@@ -127,10 +70,13 @@ export default function TransferManagement() {
     return true;
   });
 
-  const toggleGuestNotified = (id: string) => {
-    setTransfers(transfers.map(t => 
-      t.id === id ? { ...t, is_guest_notified: !t.is_guest_notified } : t
-    ));
+  const toggleGuestNotified = async (id: string) => {
+    try {
+      const updated = await api.toggleGuestNotification(id);
+      setTransfers(transfers.map(t => t.id === id ? updated : t));
+    } catch (error) {
+      console.error('Failed to toggle notification', error);
+    }
   };
 
   const openAssignModal = (transfer: Transfer) => {
@@ -140,14 +86,15 @@ export default function TransferManagement() {
     setAssignModalOpen(true);
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (selectedTransfer && selectedDriverId && selectedVehicleId) {
-      setTransfers(transfers.map(t => 
-        t.id === selectedTransfer.id 
-          ? { ...t, driver_id: selectedDriverId, vehicle_id: selectedVehicleId, status: 'DRIVER_ASSIGNED' }
-          : t
-      ));
-      setAssignModalOpen(false);
+      try {
+        const updated = await api.assignDriverAndVehicle(selectedTransfer.id, selectedDriverId, selectedVehicleId);
+        setTransfers(transfers.map(t => t.id === selectedTransfer.id ? updated : t));
+        setAssignModalOpen(false);
+      } catch (error) {
+        console.error('Failed to assign driver/vehicle', error);
+      }
     }
   };
 
@@ -335,7 +282,7 @@ export default function TransferManagement() {
                         <div>
                           <p className="text-xs text-slate-500 font-medium">Şoför</p>
                           <p className="text-sm font-bold text-slate-900">
-                            {MOCK_DRIVERS.find(d => d.id === transfer.driver_id)?.name || 'Bilinmiyor'}
+                            {drivers.find(d => d.id === transfer.driver_id)?.name || 'Bilinmiyor'}
                           </p>
                         </div>
                       </div>
@@ -346,7 +293,7 @@ export default function TransferManagement() {
                         <div>
                           <p className="text-xs text-slate-500 font-medium">Araç</p>
                           <p className="text-sm font-bold text-slate-900">
-                            {MOCK_VEHICLES.find(v => v.id === transfer.vehicle_id)?.plate_number || 'Bilinmiyor'}
+                            {vehicles.find(v => v.id === transfer.vehicle_id)?.plate_number || 'Bilinmiyor'}
                           </p>
                         </div>
                       </div>
@@ -408,7 +355,7 @@ export default function TransferManagement() {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all bg-white"
                     >
                       <option value="">Şoför Seçin...</option>
-                      {MOCK_DRIVERS.map(driver => (
+                      {drivers.map(driver => (
                         <option key={driver.id} value={driver.id}>{driver.name} ({driver.phone})</option>
                       ))}
                     </select>
@@ -422,7 +369,7 @@ export default function TransferManagement() {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none transition-all bg-white"
                     >
                       <option value="">Araç Seçin...</option>
-                      {MOCK_VEHICLES
+                      {vehicles
                         .filter(v => v.class === selectedTransfer.requested_vehicle_class && v.status === 'ACTIVE')
                         .map(vehicle => (
                         <option key={vehicle.id} value={vehicle.id}>

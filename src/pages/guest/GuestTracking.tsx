@@ -11,9 +11,11 @@ import {
   CheckCircle2, 
   FileCheck,
   Navigation,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react';
-import type { TransferStatus } from '../../types';
+import type { TransferStatus, Transfer, User, Vehicle } from '../../types';
+import { api } from '../../services/api';
 
 // Simple Dictionary for i18n
 type Language = 'tr' | 'en' | 'ru';
@@ -39,7 +41,7 @@ const TRANSLATIONS = {
     flightInfo: 'Uçuş Bilgisi',
     pax: 'Kişi',
     notFound: 'Bu bilgilere ait bir rezervasyon bulunamadı. Lütfen bilgileri kontrol edin.',
-    tryExample: 'Örnek denemek için: PNR: TRF-456, Tel: 555',
+    tryExample: 'Örnek denemek için: PNR: TRF-123, Tel: 555',
     back: 'Geri Dön',
   },
   en: {
@@ -62,7 +64,7 @@ const TRANSLATIONS = {
     flightInfo: 'Flight Info',
     pax: 'Pax',
     notFound: 'No booking found with these details. Please check your information.',
-    tryExample: 'Try example: PNR: TRF-456, Phone: 555',
+    tryExample: 'Try example: PNR: TRF-123, Phone: 555',
     back: 'Go Back',
   },
   ru: {
@@ -85,53 +87,37 @@ const TRANSLATIONS = {
     flightInfo: 'Рейс',
     pax: 'чел.',
     notFound: 'Бронирование не найдено. Пожалуйста, проверьте данные.',
-    tryExample: 'Пример: PNR: TRF-456, Тел: 555',
+    tryExample: 'Пример: PNR: TRF-123, Тел: 555',
     back: 'Назад',
   }
 };
-
-// Mock Database for Guest Query
-const MOCK_DB = [
-  {
-    transfer: { pnr: 'TRF-123', phone: '555', pickup: 'Istanbul Airport (IST)', dropoff: 'Swissotel The Bosphorus', time: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), flight: 'TK1984', pax: 2, status: 'PENDING' as TransferStatus },
-    driver: null,
-    vehicle: null
-  },
-  {
-    transfer: { pnr: 'TRF-456', phone: '555', pickup: 'Sabiha Gokcen Airport (SAW)', dropoff: 'Kadikoy Merkez', time: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(), flight: 'PC284', pax: 4, status: 'DRIVER_ASSIGNED' as TransferStatus },
-    driver: { name: 'Ahmet Yılmaz', phone: '+90 555 111 22 33' },
-    vehicle: { plate: '34 VIP 001', make: 'Mercedes-Benz', model: 'Vito VIP', class: 'VIP_VAN' }
-  },
-  {
-    transfer: { pnr: 'TRF-789', phone: '555', pickup: 'Antalya Airport (AYT)', dropoff: 'Rixos Premium', time: new Date(Date.now() - 1000 * 60 * 30).toISOString(), flight: 'SU2134', pax: 5, status: 'PASSENGER_PICKED_UP' as TransferStatus },
-    driver: { name: 'Mehmet Demir', phone: '+90 555 222 33 44' },
-    vehicle: { plate: '07 TRF 007', make: 'Volkswagen', model: 'Caravelle', class: 'MINIVAN' }
-  }
-];
 
 export default function GuestTracking() {
   const [lang, setLang] = useState<Language>('tr');
   const [pnrInput, setPnrInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
-  const [activeData, setActiveData] = useState<typeof MOCK_DB[0] | null>(null);
+  const [activeData, setActiveData] = useState<{ transfer: Transfer, driver: User | null, vehicle: Vehicle | null } | null>(null);
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const t = TRANSLATIONS[lang];
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(false);
+    setLoading(true);
     
-    // Simulate API search
-    const found = MOCK_DB.find(
-      d => d.transfer.pnr.toLowerCase() === pnrInput.toLowerCase().trim() && 
-           d.transfer.phone === phoneInput.trim()
-    );
-
-    if (found) {
-      setActiveData(found);
-    } else {
+    try {
+      const data = await api.getTransferByPnr(pnrInput, phoneInput);
+      if (data) {
+        setActiveData(data);
+      } else {
+        setError(true);
+      }
+    } catch (err) {
       setError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,9 +220,14 @@ export default function GuestTracking() {
 
                 <button 
                   type="submit"
-                  className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+                  disabled={loading}
+                  className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <Search className="w-5 h-5" />
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5" />
+                  )}
                   {t.findTransfer}
                 </button>
               </form>
@@ -332,7 +323,7 @@ export default function GuestTracking() {
                       <div className="flex-1 space-y-4">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide">{t.vehicleTitle}</h3>
                         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                          <p className="text-xl font-black text-slate-900 font-mono mb-1">{activeData.vehicle?.plate}</p>
+                          <p className="text-xl font-black text-slate-900 font-mono mb-1">{activeData.vehicle?.plate_number}</p>
                           <p className="text-sm font-bold text-slate-600">{activeData.vehicle?.make} {activeData.vehicle?.model}</p>
                           <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-500">
                             <Car className="w-3.5 h-3.5" />
@@ -362,13 +353,13 @@ export default function GuestTracking() {
                     <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" /> {t.pickupTime}
                     </p>
-                    <p className="font-bold text-slate-900 text-sm">{formatDate(activeData.transfer.time)}</p>
+                    <p className="font-bold text-slate-900 text-sm">{formatDate(activeData.transfer.pickup_time)}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1">
                       <Plane className="w-3.5 h-3.5" /> {t.flightInfo}
                     </p>
-                    <p className="font-bold text-slate-900 text-sm">{activeData.transfer.flight || '-'}</p>
+                    <p className="font-bold text-slate-900 text-sm">{activeData.transfer.flight_number || '-'}</p>
                   </div>
                 </div>
 
@@ -380,7 +371,7 @@ export default function GuestTracking() {
                       <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
                     </div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.pickup}</p>
-                    <p className="font-bold text-slate-900 mt-0.5">{activeData.transfer.pickup}</p>
+                    <p className="font-bold text-slate-900 mt-0.5">{activeData.transfer.pickup_location}</p>
                   </div>
 
                   <div className="relative">
@@ -388,13 +379,13 @@ export default function GuestTracking() {
                       <MapPin className="w-3.5 h-3.5 text-emerald-600" />
                     </div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.dropoff}</p>
-                    <p className="font-bold text-slate-900 mt-0.5">{activeData.transfer.dropoff}</p>
+                    <p className="font-bold text-slate-900 mt-0.5">{activeData.transfer.dropoff_location}</p>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex items-center gap-2">
                   <Users className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-bold text-slate-700">{activeData.transfer.pax} {t.pax}</span>
+                  <span className="text-sm font-bold text-slate-700">{activeData.transfer.passenger_count} {t.pax}</span>
                 </div>
               </div>
 

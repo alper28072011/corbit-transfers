@@ -1,50 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical } from 'lucide-react';
+import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2 } from 'lucide-react';
 import type { Vehicle, VehicleClass, VehicleStatus, VehicleFeature } from '../../types';
+import { api } from '../../services/api';
 
-// Mock Data
-const MOCK_VEHICLES: Vehicle[] = [
-  {
-    id: 'v1',
-    vendor_id: 'vendor_1',
-    plate_number: '34 TRF 001',
-    make: 'Mercedes-Benz',
-    model: 'Vito VIP',
-    year: 2023,
-    class: 'VIP_VAN',
-    capacity: 6,
-    features: ['WIFI', 'WATER', 'LEATHER_SEATS'],
-    status: 'ACTIVE',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v2',
-    vendor_id: 'vendor_1',
-    plate_number: '34 TRF 002',
-    make: 'Volkswagen',
-    model: 'Caravelle',
-    year: 2022,
-    class: 'MINIVAN',
-    capacity: 8,
-    features: ['WIFI', 'BABY_SEAT'],
-    status: 'MAINTENANCE',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v3',
-    vendor_id: 'vendor_1',
-    plate_number: '34 TRF 003',
-    make: 'Mercedes-Benz',
-    model: 'E-Class',
-    year: 2024,
-    class: 'SEDAN',
-    capacity: 3,
-    features: ['WATER', 'LEATHER_SEATS'],
-    status: 'ACTIVE',
-    created_at: new Date().toISOString(),
-  }
-];
+const VENDOR_ID = 'vendor_1'; // Mock vendor ID
 
 const classColors: Record<VehicleClass, string> = {
   SEDAN: 'bg-blue-100 text-blue-700',
@@ -60,14 +20,36 @@ const statusColors: Record<VehicleStatus, string> = {
 };
 
 export default function FleetManagement() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [filterClass, setFilterClass] = useState<VehicleClass | 'ALL'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+
+  const loadVehicles = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getVehicles(VENDOR_ID);
+      setVehicles(data);
+    } catch (error) {
+      console.error('Failed to load vehicles', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredVehicles = vehicles.filter(v => filterClass === 'ALL' || v.class === filterClass);
 
-  const updateStatus = (id: string, newStatus: VehicleStatus) => {
-    setVehicles(vehicles.map(v => v.id === id ? { ...v, status: newStatus } : v));
+  const updateStatus = async (id: string, newStatus: VehicleStatus) => {
+    try {
+      const updated = await api.updateVehicleStatus(id, newStatus);
+      setVehicles(vehicles.map(v => v.id === id ? updated : v));
+    } catch (error) {
+      console.error('Failed to update status', error);
+    }
   };
 
   return (
