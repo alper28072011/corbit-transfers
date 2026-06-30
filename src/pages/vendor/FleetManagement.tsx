@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, MoreVertical, Loader2, X, Upload } from 'lucide-react';
+import { Plus, Filter, Wifi, Baby, Accessibility, Tv, Car as CarIcon, Loader2, X, Upload, Edit, Trash2 } from 'lucide-react';
 import type { Vehicle, VehicleClass, VehicleStatus, VehicleFeature } from '../../types';
 import { api } from '../../services/api';
 
@@ -27,6 +27,9 @@ export default function FleetManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
 
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
     plate_number: '',
@@ -67,40 +70,127 @@ export default function FleetManagement() {
     }
   };
 
-  const handleAddVehicle = async (e: React.FormEvent) => {
+  const handleSubmitVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVehicle.plate_number || !newVehicle.make || !newVehicle.model) return;
     
     try {
       setIsSubmitting(true);
-      const added = await api.addVehicle(newVehicle as Omit<Vehicle, 'id' | 'created_at'>);
-      
-      let finalAdded = added;
-      if (selectedFile) {
-        setUploadingImage(true);
-        const imageUrl = await api.uploadVehicleImage(added.id, selectedFile);
-        finalAdded = { ...added, imageUrl };
-      }
+      if (editingVehicleId) {
+        // Edit mode
+        let currentImageUrl = newVehicle.imageUrl;
+        if (selectedFile) {
+          setUploadingImage(true);
+          currentImageUrl = await api.uploadVehicleImage(editingVehicleId, selectedFile);
+        }
+        
+        const updatePayload = {
+          plate_number: newVehicle.plate_number,
+          make: newVehicle.make,
+          model: newVehicle.model,
+          year: newVehicle.year,
+          class: newVehicle.class,
+          capacity: newVehicle.capacity,
+          features: newVehicle.features,
+          status: newVehicle.status,
+          imageUrl: currentImageUrl,
+        };
+        
+        await api.updateVehicle(editingVehicleId, updatePayload);
+        
+        setVehicles(vehicles.map(v => v.id === editingVehicleId ? { ...v, ...updatePayload } : v));
+      } else {
+        // Add mode
+        const added = await api.addVehicle(newVehicle as Omit<Vehicle, 'id' | 'created_at'>);
+        
+        let finalAdded = added;
+        if (selectedFile) {
+          setUploadingImage(true);
+          const imageUrl = await api.uploadVehicleImage(added.id, selectedFile);
+          finalAdded = { ...added, imageUrl };
+        }
 
-      setVehicles([...vehicles, finalAdded]);
-      setIsAddModalOpen(false);
-      setSelectedFile(null);
-      setNewVehicle({
-        plate_number: '',
-        make: '',
-        model: '',
-        year: new Date().getFullYear(),
-        class: 'MINIVAN',
-        capacity: 6,
-        features: [],
-        status: 'ACTIVE',
-        vendor_id: VENDOR_ID
-      });
+        setVehicles([...vehicles, finalAdded]);
+      }
+      
+      handleCloseModal();
     } catch (error) {
-      console.error('Failed to add vehicle', error);
+      console.error('Failed to save vehicle', error);
     } finally {
       setIsSubmitting(false);
       setUploadingImage(false);
+    }
+  };
+
+  const handleEditClick = (vehicle: Vehicle) => {
+    setEditingVehicleId(vehicle.id);
+    setNewVehicle({
+      plate_number: vehicle.plate_number,
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      class: vehicle.class,
+      capacity: vehicle.capacity,
+      features: vehicle.features,
+      status: vehicle.status,
+      vendor_id: vehicle.vendor_id,
+      imageUrl: vehicle.imageUrl,
+    });
+    setSelectedFile(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddNewClick = () => {
+    setEditingVehicleId(null);
+    setNewVehicle({
+      plate_number: '',
+      make: '',
+      model: '',
+      year: new Date().getFullYear(),
+      class: 'MINIVAN',
+      capacity: 6,
+      features: [],
+      status: 'ACTIVE',
+      vendor_id: VENDOR_ID
+    });
+    setSelectedFile(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsAddModalOpen(false);
+    setEditingVehicleId(null);
+    setSelectedFile(null);
+    setNewVehicle({
+      plate_number: '',
+      make: '',
+      model: '',
+      year: new Date().getFullYear(),
+      class: 'MINIVAN',
+      capacity: 6,
+      features: [],
+      status: 'ACTIVE',
+      vendor_id: VENDOR_ID
+    });
+  };
+
+  const handleDeleteClick = (vehicle: Vehicle) => {
+    setVehicleToDelete(vehicle);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!vehicleToDelete) return;
+    try {
+      setIsSubmitting(true);
+      await api.deleteVehicle(vehicleToDelete.id, vehicleToDelete.imageUrl);
+      setVehicles(vehicles.filter(v => v.id !== vehicleToDelete.id));
+      setIsDeleteConfirmOpen(false);
+      setVehicleToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete vehicle', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,7 +212,7 @@ export default function FleetManagement() {
           <p className="text-slate-500 mt-1">Araçlarınızı görüntüleyin, düzenleyin ve durumlarını güncelleyin.</p>
         </div>
         <button 
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={handleAddNewClick}
           className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-colors shadow-sm font-medium w-full sm:w-auto justify-center"
         >
           <Plus className="w-5 h-5" />
@@ -221,9 +311,22 @@ export default function FleetManagement() {
                   <option value="PASSIVE">Pasif</option>
                 </select>
               </div>
-              <button className="text-slate-400 hover:text-slate-600 p-1">
-                <MoreVertical className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => handleEditClick(vehicle)}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleDeleteClick(vehicle)}
+                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -243,7 +346,7 @@ export default function FleetManagement() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
-              onClick={() => setIsAddModalOpen(false)}
+              onClick={handleCloseModal}
             />
             <motion.div 
               initial={{ opacity: 0, x: '100%' }}
@@ -253,14 +356,16 @@ export default function FleetManagement() {
               className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
             >
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h2 className="text-xl font-bold text-slate-900">Yeni Araç Ekle</h2>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-900">
+                  {editingVehicleId ? 'Aracı Düzenle' : 'Yeni Araç Ekle'}
+                </h2>
+                <button onClick={handleCloseModal} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-200">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="add-vehicle-form" className="space-y-5" onSubmit={handleAddVehicle}>
+                <form id="add-vehicle-form" className="space-y-5" onSubmit={handleSubmitVehicle}>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Plaka Numarası</label>
                     <input 
@@ -331,7 +436,7 @@ export default function FleetManagement() {
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
                           <Upload className="w-8 h-8 text-slate-400 mb-2" />
                           <p className="text-sm text-slate-500 font-medium truncate max-w-full">
-                            {selectedFile ? selectedFile.name : "Görsel seçmek için tıklayın"}
+                            {selectedFile ? selectedFile.name : (newVehicle.imageUrl ? "Mevcut görseli değiştirmek için tıklayın" : "Görsel seçmek için tıklayın")}
                           </p>
                           <p className="text-xs text-slate-400 mt-1">PNG, JPG, JPEG (Maks. 5MB)</p>
                         </div>
@@ -380,9 +485,57 @@ export default function FleetManagement() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                       {uploadingImage ? 'Resim Yükleniyor...' : 'Kaydediliyor...'}
                     </>
-                  ) : 'Aracı Kaydet'}
+                  ) : (editingVehicleId ? 'Değişiklikleri Kaydet' : 'Aracı Kaydet')}
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {isDeleteConfirmOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+            >
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Aracı Sil</h3>
+                <p className="text-slate-500 text-sm mb-6">
+                  Bu aracı ({vehicleToDelete?.make} {vehicleToDelete?.model}) silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button 
+                    onClick={() => setIsDeleteConfirmOpen(false)}
+                    className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  >
+                    Vazgeç
+                  </button>
+                  <button 
+                    onClick={handleConfirmDelete}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl transition-colors flex items-center gap-1.5"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Siliniyor...
+                      </>
+                    ) : 'Evet, Sil'}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
           </>
         )}

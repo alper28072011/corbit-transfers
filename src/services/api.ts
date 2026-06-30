@@ -1,5 +1,5 @@
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus, Vendor, MonetizationPlan } from '../types';
 import { db, storage } from './dbClient';
 
@@ -23,6 +23,24 @@ export const api = {
     };
     const docRef = await addDoc(collection(db, 'vehicles'), newDoc);
     return { id: docRef.id, ...newDoc } as Vehicle;
+  },
+
+  updateVehicle: async (vehicleId: string, updatedData: Partial<Vehicle>): Promise<void> => {
+    const docRef = doc(db, 'vehicles', vehicleId);
+    await updateDoc(docRef, updatedData);
+  },
+
+  deleteVehicle: async (vehicleId: string, imageUrl?: string): Promise<void> => {
+    if (imageUrl) {
+      try {
+        const storageRef = ref(storage, imageUrl);
+        await deleteObject(storageRef);
+      } catch (storageError) {
+        console.warn('Failed to delete vehicle image from Storage:', storageError);
+      }
+    }
+    const docRef = doc(db, 'vehicles', vehicleId);
+    await deleteDoc(docRef);
   },
 
   updateVehicleStatus: async (id: string, status: VehicleStatus): Promise<Vehicle> => {
