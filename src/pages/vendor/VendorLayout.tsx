@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import FleetManagement from './FleetManagement';
 import TransferManagement from './TransferManagement';
+import Header from '../../components/Header';
 
 export default function VendorLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -79,6 +80,7 @@ export default function VendorLayout() {
 
       {/* Main Content Area */}
       <main className="flex-1 md:ml-64 mt-16 md:mt-0 min-h-screen">
+        <Header title="Firma Yönetim Paneli" subtitle="Filo, şoför ve transfer operasyonları" />
         <Routes>
           <Route path="/" element={<Navigate to="fleet" replace />} />
           <Route path="fleet" element={<FleetManagement />} />

@@ -319,5 +319,36 @@ export const api = {
       console.error('createUserProfile error:', error);
       throw error;
     }
+  },
+
+  updateUserProfile: async (userId: string, updatedData: Partial<User>): Promise<void> => {
+    try {
+      const docRef = doc(db, 'users', userId);
+      await updateDoc(docRef, updatedData);
+    } catch (error: any) {
+      console.error('updateUserProfile error:', error);
+      throw error;
+    }
+  },
+
+  deleteUserAccount: async (userId: string): Promise<void> => {
+    try {
+      // 1. Delete Firestore user document
+      const docRef = doc(db, 'users', userId);
+      await deleteDoc(docRef);
+
+      // 2. Delete Firebase Auth user if matching currentUser
+      const currentUser = auth.currentUser;
+      if (currentUser && currentUser.uid === userId) {
+        try {
+          await currentUser.delete();
+        } catch (authErr) {
+          console.warn('Could not delete Firebase Auth user (might require re-authentication), but Firestore profile is deleted:', authErr);
+        }
+      }
+    } catch (error: any) {
+      console.error('deleteUserAccount error:', error);
+      throw error;
+    }
   }
 };

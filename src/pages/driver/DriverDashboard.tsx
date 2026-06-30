@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { Transfer, TransferStatus } from '../../types';
 import { api } from '../../services/api';
+import Header from '../../components/Header';
 
 // O anki giriş yapmış şoförün ID'si
 const CURRENT_DRIVER_ID = 'd1';
@@ -76,42 +77,33 @@ export default function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-      {/* Mobile Header */}
-      <header className="bg-slate-900 text-white pt-12 pb-6 px-6 sticky top-0 z-10 shadow-md">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Şoför Paneli</h1>
-            <p className="text-slate-400 text-sm font-medium mt-1">Hoş geldin, Ahmet Kaptan</p>
-          </div>
-          <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
-            <UserIcon className="w-6 h-6 text-slate-300" />
-          </div>
-        </div>
+      <Header title="Şoför Paneli" subtitle="Günlük transferler ve sürüş takibi" />
 
-        {/* Tabs */}
-        <div className="flex bg-slate-800 p-1 rounded-2xl w-full">
+      {/* Tabs Switcher Area */}
+      <div className="p-4 bg-white border-b border-slate-200">
+        <div className="flex bg-slate-100 p-1 rounded-2xl w-full max-w-md mx-auto">
           <button
             onClick={() => setActiveTab('ACTIVE')}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
               activeTab === 'ACTIVE' 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-slate-950 text-white shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Aktif İşlerim
           </button>
           <button
             onClick={() => setActiveTab('PAST')}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
               activeTab === 'PAST' 
-                ? 'bg-slate-700 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-slate-950 text-white shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Geçmiş
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content (List) */}
       <main className="flex-1 p-4 space-y-4 pb-24">

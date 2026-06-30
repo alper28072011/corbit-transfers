@@ -5,6 +5,7 @@ import DriverDashboard from './pages/driver/DriverDashboard';
 import GuestTracking from './pages/guest/GuestTracking';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/auth/Login';
+import ProfileManagement from './pages/shared/ProfileManagement';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/vendor/*" element={<VendorLayout />} />
           <Route path="/driver/*" element={<DriverDashboard />} />
           <Route path="/guest/*" element={<GuestTracking />} />
+          <Route path="/profile" element={<ProfileManagement />} />
         </Routes>
       </div>
     </BrowserRouter>

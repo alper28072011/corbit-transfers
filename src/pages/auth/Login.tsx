@@ -252,6 +252,7 @@ export default function Login() {
   };
 
   const handleRoleRedirect = (user: AppUser) => {
+    localStorage.setItem('corbit_user', JSON.stringify(user));
     setTimeout(() => {
       if (user.role === 'SUPER_ADMIN') {
         navigate('/admin');

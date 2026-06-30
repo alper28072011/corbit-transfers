@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { Vendor, MonetizationPlan } from '../../types';
 import { api } from '../../services/api';
+import Header from '../../components/Header';
 
 export default function AdminDashboard() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -92,10 +93,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Top Navigation Bar */}
-      <header className="bg-slate-900 text-white h-16 flex items-center px-6 sticky top-0 z-20 shadow-md">
-        <div className="font-bold text-xl tracking-tight">TRF<span className="text-blue-400">SYNC</span> <span className="text-slate-400 text-sm font-medium ml-2">Super Admin</span></div>
-      </header>
+      <Header title="TRFSYNC" subtitle="Süper Yönetici Kontrol Paneli" />
 
       <main className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
         
