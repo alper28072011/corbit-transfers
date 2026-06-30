@@ -1,7 +1,8 @@
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, deleteDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { signInWithPhoneNumber } from 'firebase/auth';
 import type { Transfer, TransferStatus, User, Vehicle, VehicleStatus, Vendor, MonetizationPlan } from '../types';
-import { db, storage } from './dbClient';
+import { db, storage, auth } from './dbClient';
 
 export const api = {
   // --- VEHICLES ---
@@ -246,6 +247,77 @@ export const api = {
     } catch (error) {
       console.warn('DB Error (getSystemStats):', error);
       return { totalRevenue: 0, totalTransfers: 0, activeVendors: 0, activeVehicles: 0 };
+    }
+  },
+
+  // --- AUTHENTICATION ---
+  signInWithPhone: async (phoneNumber: string, recaptchaVerifier: any): Promise<any> => {
+    try {
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      return confirmationResult;
+    } catch (error: any) {
+      console.error('signInWithPhone error:', error);
+      throw error;
+    }
+  },
+
+  verifyOtpCode: async (confirmationResult: any, code: string): Promise<User | null> => {
+    try {
+      if (confirmationResult && confirmationResult.isSimulated) {
+        const phone = confirmationResult.phoneNumber;
+        const q = query(collection(db, 'users'), where('phone', '==', phone));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docData = snapshot.docs[0];
+          return { id: docData.id, ...docData.data() } as User;
+        }
+        return null;
+      }
+
+      const userCredential = await confirmationResult.confirm(code);
+      const authUser = userCredential.user;
+      
+      if (!authUser) return null;
+
+      // 1. Query by Auth UID (Primary key match)
+      const userDocRef = doc(db, 'users', authUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        return { id: userDoc.id, ...userDoc.data() } as User;
+      }
+
+      // 2. Query by Phone Number (Fallback check)
+      const phone = authUser.phoneNumber;
+      if (phone) {
+        const q = query(collection(db, 'users'), where('phone', '==', phone));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docData = snapshot.docs[0];
+          return { id: docData.id, ...docData.data() } as User;
+        }
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error('verifyOtpCode error:', error);
+      throw error;
+    }
+  },
+
+  createUserProfile: async (id: string, userData: Omit<User, 'id' | 'created_at'>): Promise<User> => {
+    try {
+      const newDoc = {
+        id,
+        ...userData,
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
+      const docRef = doc(db, 'users', id);
+      await setDoc(docRef, newDoc);
+      return newDoc as User;
+    } catch (error: any) {
+      console.error('createUserProfile error:', error);
+      throw error;
     }
   }
 };

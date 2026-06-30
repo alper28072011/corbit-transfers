@@ -4,6 +4,7 @@ import VendorLayout from './pages/vendor/VendorLayout';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import GuestTracking from './pages/guest/GuestTracking';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import Login from './pages/auth/Login';
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
         <Routes>
           <Route path="/" element={<WelcomeScreen />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="/vendor/*" element={<VendorLayout />} />
           <Route path="/driver/*" element={<DriverDashboard />} />
@@ -32,6 +34,18 @@ function WelcomeScreen() {
           <p className="text-lg text-slate-600">
             Vibe Coding felsefesiyle inşa edilen, PostgreSQL uyumlu, ölçeklenebilir ve i18n destekli Multi-Tenant mimari.
           </p>
+        </div>
+
+        <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-bold text-lg">Pratik Giriş Sistemi</h3>
+            <p className="text-sm text-slate-300 mt-1">
+              Şifresiz, SMS OTP telefon doğrulama sistemi ile güvenle giriş yapın veya yeni hesap oluşturun.
+            </p>
+          </div>
+          <Link to="/login" className="bg-white text-slate-900 hover:bg-slate-100 transition-colors px-5 py-2.5 rounded-xl font-semibold text-sm shrink-0 shadow-sm flex items-center gap-1.5">
+            Sisteme Giriş Yap &rarr;
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12">
