@@ -228,25 +228,34 @@ export const api = {
       const vendorsSnap = await getDocs(query(collection(db, 'vendors'), where('is_active', '==', true)));
       const vehiclesSnap = await getDocs(query(collection(db, 'vehicles'), where('status', '==', 'ACTIVE')));
       const transfersSnap = await getDocs(collection(db, 'transfers'));
+      const affiliatesSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'AFFILIATE')));
 
       const activeVendors = vendorsSnap.size;
       const activeVehicles = vehiclesSnap.size;
       const totalTransfers = transfersSnap.size;
+      const totalAffiliates = affiliatesSnap.size;
       
       const totalRevenue = transfersSnap.docs.reduce((acc, doc) => {
         const data = doc.data();
         return acc + (data.commission_amount || 0);
       }, 0);
 
+      const totalAffiliateCommissions = transfersSnap.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        return acc + (data.affiliateCommissionAmount || 0);
+      }, 0);
+
       return {
         totalRevenue,
         totalTransfers,
         activeVendors,
-        activeVehicles
+        activeVehicles,
+        totalAffiliates,
+        totalAffiliateCommissions
       };
     } catch (error) {
       console.warn('DB Error (getSystemStats):', error);
-      return { totalRevenue: 0, totalTransfers: 0, activeVendors: 0, activeVehicles: 0 };
+      return { totalRevenue: 0, totalTransfers: 0, activeVendors: 0, activeVehicles: 0, totalAffiliates: 0, totalAffiliateCommissions: 0 };
     }
   },
 
@@ -348,6 +357,36 @@ export const api = {
       }
     } catch (error: any) {
       console.error('deleteUserAccount error:', error);
+      throw error;
+    }
+  },
+
+  createAffiliateTransfer: async (transferData: Omit<Transfer, 'id' | 'created_at' | 'status'>): Promise<string> => {
+    try {
+      const newTransfer = {
+        ...transferData,
+        status: 'PENDING' as TransferStatus,
+        created_at: new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, 'transfers'), newTransfer);
+      return docRef.id;
+    } catch (error: any) {
+      console.error('createAffiliateTransfer error:', error);
+      throw error;
+    }
+  },
+
+  getAffiliateTransfers: async (affiliateId: string): Promise<Transfer[]> => {
+    try {
+      const q = query(collection(db, 'transfers'), where('affiliateId', '==', affiliateId));
+      const snapshot = await getDocs(q);
+      const list: Transfer[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as Transfer);
+      });
+      return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } catch (error: any) {
+      console.error('getAffiliateTransfers error:', error);
       throw error;
     }
   }

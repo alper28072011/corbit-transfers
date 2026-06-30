@@ -11,7 +11,9 @@ import {
   CheckCircle2, 
   XCircle, 
   Loader2,
-  X
+  X,
+  Users,
+  Percent
 } from 'lucide-react';
 import type { Vendor, MonetizationPlan } from '../../types';
 import { api } from '../../services/api';
@@ -19,7 +21,14 @@ import Header from '../../components/Header';
 
 export default function AdminDashboard() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [stats, setStats] = useState({ totalRevenue: 0, totalTransfers: 0, activeVendors: 0, activeVehicles: 0 });
+  const [stats, setStats] = useState({ 
+    totalRevenue: 0, 
+    totalTransfers: 0, 
+    activeVendors: 0, 
+    activeVehicles: 0,
+    totalAffiliates: 0,
+    totalAffiliateCommissions: 0
+  });
   const [loading, setLoading] = useState(true);
   
   // Add Vendor Modal State
@@ -113,30 +122,30 @@ export default function AdminDashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-emerald-200 transition-colors">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Net Sistem Geliri</p>
-                <h3 className="text-3xl font-black text-slate-900 mt-1">₺{stats.totalRevenue.toLocaleString()}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Net Sistem Geliri</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">₺{stats.totalRevenue.toLocaleString()}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                <DollarSign className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                <DollarSign className="w-5 h-5" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 w-max px-2.5 py-1 rounded-md">
-              <TrendingUp className="w-3.5 h-3.5" /> +12% bu ay
+              <TrendingUp className="w-3 h-3" /> +12% bu ay
             </div>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-blue-200 transition-colors">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Toplam Transfer</p>
-                <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.totalTransfers}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Toplam Transfer</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">{stats.totalTransfers}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <CalendarDays className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                <CalendarDays className="w-5 h-5" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-slate-500">
@@ -147,11 +156,11 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-purple-200 transition-colors">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Aktif Acente</p>
-                <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.activeVendors}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Aktif Acente</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">{stats.activeVendors}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                <Building2 className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                <Building2 className="w-5 h-5" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-slate-500">
@@ -162,15 +171,45 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-orange-200 transition-colors">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Aktif Filo</p>
-                <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.activeVehicles}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Aktif Filo</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">{stats.activeVehicles}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                <Car className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                <Car className="w-5 h-5" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-slate-500">
               Sahada operasyonda
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-rose-200 transition-colors">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Aracı İş Ortağı</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">{stats.totalAffiliates || 0}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-slate-500">
+              Kayıtlı aracılar
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between group hover:border-indigo-200 transition-colors">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Aracı Komisyonu</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1">₺{(stats.totalAffiliateCommissions || 0).toLocaleString()}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                <Percent className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-slate-500">
+              Dağıtılan toplam pay
             </div>
           </div>
         </div>

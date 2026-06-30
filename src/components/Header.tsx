@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { User as UserIcon, LogOut, Settings, Shield, UserCheck, ChevronDown, Building2, Car } from 'lucide-react';
+import { User as UserIcon, LogOut, Settings, Shield, UserCheck, ChevronDown, Building2, Car, Users } from 'lucide-react';
 import { auth, db } from '../services/dbClient';
 import { doc, getDoc } from 'firebase/firestore';
 import type { User } from '../types';
@@ -140,6 +140,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
           label: 'Şoför',
           bg: 'bg-emerald-50 text-emerald-700 border-emerald-100',
           icon: Car,
+        };
+      case 'AFFILIATE':
+        return {
+          label: 'İş Ortağı',
+          bg: 'bg-rose-50 text-rose-700 border-rose-100',
+          icon: Users,
         };
       default:
         return {

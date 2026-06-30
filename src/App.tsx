@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Plane, Building2, Car, User } from 'lucide-react';
+import { Plane, Building2, Car, User, Users } from 'lucide-react';
 import VendorLayout from './pages/vendor/VendorLayout';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import GuestTracking from './pages/guest/GuestTracking';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/auth/Login';
 import ProfileManagement from './pages/shared/ProfileManagement';
+import AffiliateDashboard from './pages/affiliate/AffiliateDashboard';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/driver/*" element={<DriverDashboard />} />
           <Route path="/guest/*" element={<GuestTracking />} />
           <Route path="/profile" element={<ProfileManagement />} />
+          <Route path="/affiliate" element={<AffiliateDashboard />} />
         </Routes>
       </div>
     </BrowserRouter>
@@ -73,6 +75,12 @@ function WelcomeScreen() {
             <User className="w-8 h-8 text-slate-400 group-hover:text-orange-600 mb-4 transition-colors" />
             <h3 className="text-lg font-semibold mb-1">Misafir / Yolcu</h3>
             <p className="text-sm text-slate-500">B2C transfer takibi ve PNR ekranı.</p>
+          </Link>
+
+          <Link to="/affiliate" className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-rose-500 hover:shadow-md transition-all group text-left">
+            <Users className="w-8 h-8 text-slate-400 group-hover:text-rose-600 mb-4 transition-colors" />
+            <h3 className="text-lg font-semibold mb-1">Affiliate / İş Ortağı</h3>
+            <p className="text-sm text-slate-500">Müşteri yönlendirme ve komisyon takip paneli.</p>
           </Link>
         </div>
 

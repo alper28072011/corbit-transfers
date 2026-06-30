@@ -236,8 +236,9 @@ export default function Login() {
         email: regForm.email.trim(),
         phone: phoneNumber,
         role: regForm.role,
-        vendor_id: regForm.role === 'SUPER_ADMIN' ? null : regForm.vendor_id,
-        is_active: true
+        vendor_id: (regForm.role === 'SUPER_ADMIN' || regForm.role === 'AFFILIATE') ? null : regForm.vendor_id,
+        is_active: true,
+        ...(regForm.role === 'AFFILIATE' ? { affiliateCommissionRate: 15 } : {})
       };
 
       const newUser = await api.createUserProfile(verifiedUid, payload);
@@ -260,6 +261,8 @@ export default function Login() {
         navigate('/vendor');
       } else if (user.role === 'DRIVER') {
         navigate('/driver');
+      } else if (user.role === 'AFFILIATE') {
+        navigate('/affiliate');
       } else {
         navigate('/');
       }
@@ -484,11 +487,12 @@ export default function Login() {
                   >
                     <option value="DRIVER">Şoför (Driver)</option>
                     <option value="VENDOR_ADMIN">Firma Sahibi (Vendor Admin)</option>
+                    <option value="AFFILIATE">İş Ortağı / Aracı (Affiliate / Agent)</option>
                     <option value="SUPER_ADMIN">Sistem Yöneticisi (Super Admin)</option>
                   </select>
                 </div>
 
-                {regForm.role !== 'SUPER_ADMIN' && (
+                {regForm.role !== 'SUPER_ADMIN' && regForm.role !== 'AFFILIATE' && (
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Bağlı Olduğunuz Firma (Vendor)</label>
                     <select

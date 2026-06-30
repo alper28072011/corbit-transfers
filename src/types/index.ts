@@ -1,4 +1,4 @@
-export type Role = 'SUPER_ADMIN' | 'VENDOR_ADMIN' | 'DRIVER';
+export type Role = 'SUPER_ADMIN' | 'VENDOR_ADMIN' | 'DRIVER' | 'AFFILIATE';
 export type VehicleClass = 'SEDAN' | 'MINIVAN' | 'VIP_VAN' | 'MINIBUS';
 export type VehicleStatus = 'ACTIVE' | 'MAINTENANCE' | 'PASSIVE';
 export type TransferStatus = 'PENDING' | 'DRIVER_ASSIGNED' | 'PASSENGER_PICKED_UP' | 'COMPLETED' | 'CANCELLED';
@@ -20,12 +20,13 @@ export interface Vendor {
 
 export interface User {
   id: string; // UUID
-  vendor_id?: string | null; // Super Admin için null, Vendor/Driver için dolu
+  vendor_id?: string | null; // Super Admin/Affiliate için null, Vendor/Driver için dolu
   role: Role;
   name: string;
   phone: string;
   email: string;
   is_active: boolean;
+  affiliateCommissionRate?: number; // Yüzdelik (örn: 10) - Aracı komisyon oranı
   created_at: string;
 }
 
@@ -74,6 +75,10 @@ export interface Transfer {
   price: number;
   commission_amount: number;
   currency: string;
+  
+  // Aracı (Affiliate) Takibi
+  affiliateId?: string | null;
+  affiliateCommissionAmount?: number;
   
   created_at: string;
 }
